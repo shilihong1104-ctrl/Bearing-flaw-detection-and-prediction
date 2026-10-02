@@ -1,0 +1,45 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/cmake-build-debug",
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "environment": {
+                "PATH": "D:/DevEnv/DevEnv/DevEnv/GNU-tools-for-STM32/bin;$penv{PATH}"
+            },
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": "C:/Program Files/JetBrains/CLion 2026.2.0.1/bin/ninja/win/x64/ninja.exe",
+                "CMAKE_C_COMPILER": "D:/DevEnv/DevEnv/DevEnv/GNU-tools-for-STM32/bin/arm-none-eabi-gcc.exe",
+                "CMAKE_CXX_COMPILER": "D:/DevEnv/DevEnv/DevEnv/GNU-tools-for-STM32/bin/arm-none-eabi-g++.exe"
+            }
+        },
+        {
+            "name": "Debug",
+            "inherits": "default",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "Release",
+            "inherits": "default",
+            "binaryDir": "${sourceDir}/cmake-build-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "Release"
+        }
+    ]
+}

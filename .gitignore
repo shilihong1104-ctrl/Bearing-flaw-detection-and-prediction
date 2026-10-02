@@ -1,0 +1,39 @@
+# ===== Build output =====
+cmake-build-debug/
+cmake-build-release/
+build/
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.obj
+*.a
+*.su
+*.d
+
+# ===== CMake generated =====
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.ninja
+.ninja_deps
+.ninja_log
+compile_commands.json
+Testing/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.iml
+.mxproject
+
+# ===== X-CUBE-AI temp =====
+.ai/
+
+# ===== System =====
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

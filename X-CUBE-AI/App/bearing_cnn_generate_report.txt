@@ -1,0 +1,213 @@
+ST Edge AI Core v2.2.0-20266 2adc00962
+Created date          : 2026-09-29 16:52:23
+Parameters            : generate --target stm32u5 --name bearing_cnn -m D:/trae-Campus-food-ordering/model/runs/best_model.onnx --compression high --verbosity 1 --workspace C:/Users/29246/AppData/Local/Temp/mxAI_workspace2055292550833003594234174763077472 --output C:/Users/29246/.stm32cubemx/bearing_cnn_output
+
+Exec/report summary (generate)
+------------------------------------------------------------------------------------------------------------
+model file         :   D:\trae-Campus-food-ordering\model\runs\best_model.onnx                              
+type               :   onnx                                                                                 
+c_name             :   bearing_cnn                                                                          
+compression        :   high                                                                                 
+options            :   allocate-inputs, allocate-outputs                                                    
+optimization       :   balanced                                                                             
+target/series      :   stm32u5                                                                              
+workspace dir      :   C:\Users\29246\AppData\Local\Temp\mxAI_workspace2055292550833003594234174763077472   
+output dir         :   C:\Users\29246\.stm32cubemx\bearing_cnn_output                                       
+model_fmt          :   float                                                                                
+model_name         :   best_model                                                                           
+model_hash         :   0xd22a5dce926f46de2410b5bf261a2b0a                                                   
+params #           :   25,972 items (101.45 KiB)                                                            
+------------------------------------------------------------------------------------------------------------
+input 1/1          :   'input', f32(1x1024x1), 4.00 KBytes, activations                                     
+output 1/1         :   'output', f32(1x4), 16 Bytes, activations                                            
+macc               :   4,796,884                                                                            
+weights (ro)       :   103,056 B (100.64 KiB) (1 segment) / -832(-0.8%) vs float model                      
+activations (rw)   :   20,864 B (20.38 KiB) (1 segment) *                                                   
+ram (total)        :   20,864 B (20.38 KiB) = 20,864 + 0 + 0                                                
+------------------------------------------------------------------------------------------------------------
+(*) 'input'/'output' buffers are allocated in the activations buffer
+
+Model name - best_model
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+m_id   layer (type,original)                                      oshape             param/size             macc                     connected to   | c_size             c_macc                  c_type         
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+13     classifier_weight (Placeholder, Gemm)                      [b:4,c:64]         256/1,024                                                      | -816(-79.7%)       +260(+100.0%)           Dense_[o][4]   
+       classifier_bias (Placeholder, Gemm)                        [b:4]              4/16                                                           | -16(-100.0%)                               
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+0      input (Input, )                                            [b:1,h:1024,c:1]                                                                  |                                            
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+1      _features_features..v_output_0 (Conv2D, Conv)              [b:1,h:512,c:16]   1,040/4,160         524,304                            input   | -4,160(-100.0%)    -524,304(-100.0%)       
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+2      _features_features..u_output_0 (Nonlinearity, Relu)        [b:1,h:512,c:16]                         8,192   _features_features..v_output_0   |                    -8,192(-100.0%)         
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+3      _features_features..l_output_0 (Pool, MaxPool)             [b:1,h:256,c:16]                         8,192   _features_features..u_output_0   | +4,160(+100.0%)    +532,496(+6500.2%)      Conv2D_[0]     
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+4      _features_features..v_output_0 (Conv2D, Conv)              [b:1,h:257,c:32]   8,224/32,896      2,105,376   _features_features..l_output_0   | -32,896(-100.0%)   -2,105,376(-100.0%)     
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+5      _features_features..u_output_0 (Nonlinearity, Relu)        [b:1,h:257,c:32]                         8,224   _features_features..v_output_0   |                    -8,224(-100.0%)         
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+6      _features_features..l_output_0 (Pool, MaxPool)             [b:1,h:128,c:32]                         8,192   _features_features..u_output_0   | +32,896(+100.0%)   +2,113,600(+25800.8%)   Conv2D_[1]     
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+7      _features_features..v_output_0 (Conv2D, Conv)              [b:1,h:129,c:64]   16,448/65,792     2,113,600   _features_features..l_output_0   | -65,792(-100.0%)   -2,113,600(-100.0%)     
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+8      _features_features..u_output_0 (Nonlinearity, Relu)        [b:1,h:129,c:64]                         8,256   _features_features..v_output_0   |                    -8,256(-100.0%)         
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+9      _features_features..l_output_0 (Pool, MaxPool)             [b:1,h:64,c:64]                          8,192   _features_features..u_output_0   | +65,792(+100.0%)   +2,121,856(+25901.6%)   Conv2D_[2]     
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+10     _gap_GlobalAverage..l_output_0 (Pool, GlobalAveragePool)   [b:1,h:1,c:64]                           4,096   _features_features..l_output_0   |                                            Pool_[3]       
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+12     _Squeeze_output_0 (Reshape, Squeeze)                       [b:1,c:64]                                       _gap_GlobalAverage..l_output_0   |                                            
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+13     output (Gemm, Gemm)                                        [b:1,c:4]                                  260                _Squeeze_output_0   |                    -260(-100.0%)           
+                                                                                                                                classifier_weight   | 
+                                                                                                                                  classifier_bias   | 
+------ ---------------------------------------------------------- ------------------ --------------- ----------- -------------------------------- --- ------------------ ----------------------- -------------- 
+model/c-model: macc=4,796,884/4,796,884  weights=103,888/103,056 -832(-0.8%) activations=--/20,864 io=--/0
+
+
+
+Generated C-graph summary
+------------------------------------------------------------------------------------------------------------------------
+model name            : best_model
+c-name                : bearing_cnn
+c-node #              : 5
+c-array #             : 20
+activations size      : 20864 (1 segment)
+weights size          : 103056 (1 segment)
+macc                  : 4796884
+inputs                : ['input_output']
+outputs               : ['output_output']
+
+C-Arrays (20)
+------ --------------------------------------------- ------------- ------------------------- ------------------ --------- 
+c_id   name (*_array)                                item/size     domain/mem-pool           c-type             comment   
+------ --------------------------------------------- ------------- ------------------------- ------------------ --------- 
+0      _features_features_0_Conv_output_0_bias       16/64         weights/weights           const float                  
+1      _features_features_0_Conv_output_0_output     4096/16384    activations/**default**   float                        
+2      _features_features_0_Conv_output_0_scratch0   64/256        activations/**default**   float                        
+3      _features_features_0_Conv_output_0_scratch1   32/128        activations/**default**   float                        
+4      _features_features_0_Conv_output_0_weights    1024/4096     weights/weights           const float                  
+5      _features_features_4_Conv_output_0_bias       32/128        weights/weights           const float                  
+6      _features_features_4_Conv_output_0_output     4096/16384    activations/**default**   float                        
+7      _features_features_4_Conv_output_0_scratch0   256/1024      activations/**default**   float                        
+8      _features_features_4_Conv_output_0_scratch1   64/256        activations/**default**   float                        
+9      _features_features_4_Conv_output_0_weights    8192/32768    weights/weights           const float                  
+10     _features_features_8_Conv_output_0_bias       64/256        weights/weights           const float                  
+11     _features_features_8_Conv_output_0_output     4096/16384    activations/**default**   float                        
+12     _features_features_8_Conv_output_0_scratch0   256/1024      activations/**default**   float                        
+13     _features_features_8_Conv_output_0_scratch1   128/512       activations/**default**   float                        
+14     _features_features_8_Conv_output_0_weights    16384/65536   weights/weights           const float                  
+15     _gap_GlobalAveragePool_output_0_output        64/256        activations/**default**   float                        
+16     input_output                                  1024/4096     activations/**default**   float              /input    
+17     output_bias                                   4/16          weights/weights           const float                  
+18     output_output                                 4/16          activations/**default**   float              /output   
+19     output_weights                                256/192       weights/weights           const lut4_float             
+------ --------------------------------------------- ------------- ------------------------- ------------------ --------- 
+
+C-Layers (5)
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+c_id   name (*_layer)                       id   layer_type   macc      rom     tensors                                          shape (array id)      
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+0      _features_features_0_Conv_output_0   3    Conv2D       540688    4160    I: input_output                                  f32(1x1024x1) (16)    
+                                                                                S: _features_features_0_Conv_output_0_scratch0                         
+                                                                                S: _features_features_0_Conv_output_0_scratch1                         
+                                                                                W: _features_features_0_Conv_output_0_weights    f32(16x64x1x1) (4)    
+                                                                                W: _features_features_0_Conv_output_0_bias       f32(16) (0)           
+                                                                                O: _features_features_0_Conv_output_0_output     f32(1x256x16) (1)     
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+1      _features_features_4_Conv_output_0   6    Conv2D       2121792   32896   I: _features_features_0_Conv_output_0_output     f32(1x256x16) (1)     
+                                                                                S: _features_features_4_Conv_output_0_scratch0                         
+                                                                                S: _features_features_4_Conv_output_0_scratch1                         
+                                                                                W: _features_features_4_Conv_output_0_weights    f32(32x16x1x16) (9)   
+                                                                                W: _features_features_4_Conv_output_0_bias       f32(32) (5)           
+                                                                                O: _features_features_4_Conv_output_0_output     f32(1x128x32) (6)     
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+2      _features_features_8_Conv_output_0   9    Conv2D       2130048   65792   I: _features_features_4_Conv_output_0_output     f32(1x128x32) (6)     
+                                                                                S: _features_features_8_Conv_output_0_scratch0                         
+                                                                                S: _features_features_8_Conv_output_0_scratch1                         
+                                                                                W: _features_features_8_Conv_output_0_weights    f32(64x8x1x32) (14)   
+                                                                                W: _features_features_8_Conv_output_0_bias       f32(64) (10)          
+                                                                                O: _features_features_8_Conv_output_0_output     f32(1x64x64) (11)     
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+3      _gap_GlobalAveragePool_output_0      10   Pool         4096      0       I: _features_features_8_Conv_output_0_output     f32(1x64x64) (11)     
+                                                                                O: _gap_GlobalAveragePool_output_0_output        f32(1x1x64) (15)      
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+4      output                               13   Dense        260       208     I: _gap_GlobalAveragePool_output_0_output        f32(1x1x64) (15)      
+                                                                                W: output_weights                                c4(4x64) (19)         
+                                                                                W: output_bias                                   f32(4) (17)           
+                                                                                O: output_output                                 f32(1x4) (18)         
+------ ------------------------------------ ---- ------------ --------- ------- ------------------------------------------------ --------------------- 
+
+
+
+Number of operations per c-layer
+------- ------ ----------------------------------------- ----------- -------------- 
+c_id    m_id   name (type)                                       #op           type 
+------- ------ ----------------------------------------- ----------- -------------- 
+0       3      _features_features..v_output_0 (Conv2D)       540,688   smul_f32_f32 
+1       6      _features_features..v_output_0 (Conv2D)     2,121,792   smul_f32_f32 
+2       9      _features_features..v_output_0 (Conv2D)     2,130,048   smul_f32_f32 
+3       10     _gap_GlobalAverage..l_output_0 (Pool)           4,096   smul_f32_f32 
+4       13     output (Dense)                                    260    smul_f32_f4 
+------- ------ ----------------------------------------- ----------- -------------- 
+total                                                      4,796,884 
+
+Number of operation types
+---------------- ----------- ----------- 
+operation type             #           % 
+---------------- ----------- ----------- 
+smul_f32_f32       4,796,624      100.0% 
+smul_f32_f4              260        0.0% 
+
+Complexity report (model)
+------ ---------------------------------------- ------------------------- ------------------------- ------ 
+m_id   name                                     c_macc                    c_rom                     c_id   
+------ ---------------------------------------- ------------------------- ------------------------- ------ 
+13     classifier_weight                        |                  0.0%   |                  0.2%   [4]    
+3      _features_features_3_MaxPool_output_0    ||||              11.3%   |                  4.0%   [0]    
+6      _features_features_7_MaxPool_output_0    |||||||||||||||   44.2%   ||||||||          31.9%   [1]    
+9      _features_features_11_MaxPool_output_0   ||||||||||||||||  44.4%   ||||||||||||||||  63.8%   [2]    
+10     _gap_GlobalAveragePool_output_0          |                  0.1%   |                  0.0%   [3]    
+------ ---------------------------------------- ------------------------- ------------------------- ------ 
+macc=4,796,884 weights=103,056 act=20,864 ram_io=0
+ 
+ Requested memory size by section - "stm32u5" target
+ ------------------------------- -------- --------- ------- -------- 
+ module                              text    rodata    data      bss 
+ ------------------------------- -------- --------- ------- -------- 
+ NetworkRuntime1020_CM33_GCC.a     10,484         0       0        0 
+ bearing_cnn.o                        672        40   2,508      188 
+ bearing_cnn_data.o                    48        16      88        0 
+ lib (toolchain)*                       0         0       0        0 
+ ------------------------------- -------- --------- ------- -------- 
+ RT total**                        11,204        56   2,596      188 
+ ------------------------------- -------- --------- ------- -------- 
+ weights                                0   103,056       0        0 
+ activations                            0         0       0   20,864 
+ io                                     0         0       0        0 
+ ------------------------------- -------- --------- ------- -------- 
+ TOTAL                             11,204   103,112   2,596   21,052 
+ ------------------------------- -------- --------- ------- -------- 
+ *  toolchain objects (libm/libgcc*)
+ ** RT AI runtime objects (kernels+infrastructure)
+  
+  Summary - "stm32u5" target
+  ---------------------------------------------------
+               FLASH (ro)      %*   RAM (rw)       % 
+  ---------------------------------------------------
+  RT total         13,856   11.9%      2,784   11.8% 
+  ---------------------------------------------------
+  TOTAL           116,912             23,648         
+  ---------------------------------------------------
+  *  rt/total
+
+
+Generated files (7)
+-------------------------------------------------------------------------- 
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn_data_params.h   
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn_data_params.c   
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn_data.h          
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn_data.c          
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn_config.h        
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn.h               
+C:\Users\29246\.stm32cubemx\bearing_cnn_output\bearing_cnn.c               
