@@ -31,6 +31,7 @@
 #include "features.h"
 #include "state_machine.h"
 #include "control.h"
+#include "ai_model.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -138,6 +139,10 @@ int main(void)
   /* 状态机：自适应基线学习 + z-score 异常检测 + RUL 预测 */
   StateMachine_Init();
 
+  /* AI 模型：1D-CNN 轴承故障分类（4 分类） */
+  int8_t ai_ret = AI_Init();
+  printf("AI model init = %s\r\n", (ai_ret == 0) ? "OK" : "FAIL");
+
   /* DAC 输出 100%（全速，不干预生产） */
   Control_SetSpeed(100);
 
@@ -201,19 +206,25 @@ int main(void)
       float temp = g_temp_x10 / 10.0f;
       const StateOutput_t *out = StateMachine_Update(&feat, temp);
 
-      /* 步骤3：串口输出结果 */
+      /* 步骤3：AI 故障分类推理（1D-CNN，4 分类） */
+      AiResult_t ai_res;
+      int8_t ai_ok = AI_Run((int16_t *)g_z_buffer, FRAME_LEN, &ai_res);
+
+      /* 步骤4：串口输出结果 */
       const char *maint_str[] = {"---", "LEARN", "PREPARE", "SCHEDULE", "URGENT!"};
       if (!out->baseline.learned) {
           /* 前 50 秒：正在学习正常状态基线 */
           printf("LEARNING... RMS=%6.1f (%lu/200)\r\n", feat.rms,
                  (unsigned long)out->baseline.sample_cnt);
       } else {
-          /* 基线已建立，输出实时健康状态 */
-          printf("RMS=%7.1f z=%5.1f T=%5.1fC | H=%d RUL=%4luh %s%s\r\n",
+          /* 基线已建立，输出实时健康状态 + AI 故障分类 */
+          printf("RMS=%7.1f z=%5.1f T=%5.1fC | H=%d RUL=%4luh %s%s | AI=%s(%.0f%%)\r\n",
                  feat.rms, out->z_rms, temp,
                  out->health, out->rul_hours,
                  maint_str[out->maint],
-                 out->need_spare ? " [SPARE]" : "");
+                 out->need_spare ? " [SPARE]" : "",
+                 (ai_ok == 0) ? AI_FaultName(ai_res.fault) : "ERR",
+                 (ai_ok == 0) ? ai_res.confidence * 100.0f : 0.0f);
       }
     }
 

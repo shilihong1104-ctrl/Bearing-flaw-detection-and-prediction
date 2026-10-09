@@ -50,6 +50,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         Core/Src/features.c
         Core/Src/state_machine.c
         Core/Src/control.c
+        Core/Src/ai_model.c
 )
 
 # Add include paths

@@ -39,11 +39,16 @@
 
 ```
 ADXL345(4kHz采样) → 分帧(1024点) → 特征提取(RMS/峭度)
-                                         ↓
-                          自适应基线学习(前50秒)
-                                         ↓
-                          z-score = (当前RMS - μ) / σ
-                                         ↓
+                                    ↓
+              ┌─────────────────────────────────────────┐
+              │  自适应基线学习(前50秒) → z-score检测    │  → 健康等级 + RUL
+              └─────────────────────────────────────────┘
+                                    ↓
+              ┌─────────────────────────────────────────┐
+              │  1D-CNN 推理(z-score归一化 → 4分类)      │  → 故障类型 + 置信度
+              │  Normal / IR(内圈) / Ball(滚动体) / OR(外圈) │
+              └─────────────────────────────────────────┘
+                                    ↓
               ┌──────────────────────────────────────┐
               │ z<2  正常                            │
               │ z 2-3  关注(MONITOR)                 │
@@ -84,10 +89,11 @@ make -j
 ```
 ADXL345 DEVID = 0xE5, init = OK
 DS18B20 init = OK
+AI model init = OK
 LEARNING... RMS= 180.2 (1/200)
 ...
-RMS=  185.3 z= 0.3 T=42.1C | H=0 RUL=9999uh ---
-RMS=  450.3 z= 4.2 T=50.1C | H=2 RUL= 320uh PREPARE [SPARE]
+RMS=  185.3 z= 0.3 T=42.1C | H=0 RUL=9999uh --- | AI=Normal(98%)
+RMS=  450.3 z= 4.2 T=50.1C | H=2 RUL= 320uh PREPARE [SPARE] | AI=IR(87%)
 ```
 
 ## 项目结构
@@ -102,7 +108,8 @@ blink_demo/
 │       ├── ds18b20.c        # DS18B20 温度驱动
 │       ├── features.c       # 特征提取(RMS/峭度)
 │       ├── state_machine.c  # 自适应检测+RUL预测
-│       └── control.c        # DAC调速+转速测量
+│       ├── control.c        # DAC调速+转速测量
+│       └── ai_model.c       # 1D-CNN 故障分类推理
 ├── Drivers/          # STM32 HAL 库
 ├── Middlewares/ST/AI # X-CUBE-AI 运行时库
 ├── X-CUBE-AI/App     # AI 模型 C 代码
@@ -110,12 +117,14 @@ blink_demo/
 └── flash.ps1         # 烧录脚本
 ```
 
-## 资源占用
+## 资源占用（含 AI 模型）
 
 | 资源 | 用量 | 占比 |
 |---|---|---|
-| Flash | 48.5 KB | 2.3% |
-| RAM | 7.4 KB | 0.9% |
+| Flash (ROM) | 168.3 KB | 8.0% |
+| RAM | 31.1 KB | 4.0% |
+
+其中 AI 模型占：权重 103 KB（Flash）、激活缓冲 20.9 KB（RAM）。
 
 ## 开发工具
 

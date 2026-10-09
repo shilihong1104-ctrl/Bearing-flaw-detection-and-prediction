@@ -9,6 +9,7 @@ build/
 *.o
 *.obj
 *.a
+!Middlewares/ST/AI/Lib/*.a
 *.su
 *.d
 
