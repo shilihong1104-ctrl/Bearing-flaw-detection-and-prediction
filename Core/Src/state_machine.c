@@ -14,6 +14,7 @@
  */
 #include "state_machine.h"
 #include "main.h"
+#include "flash_store.h"
 #include <math.h>
 
 static StateOutput_t g_out;
@@ -22,12 +23,12 @@ static uint8_t g_confirm_count = 0;
 /* ---------- 自适应基线学习 ---------- */
 #define LEARN_SAMPLES  200   /* 学习 200 帧（每帧0.256s，共约50秒） */
 static double g_sum_rms = 0, g_sum_rms2 = 0;  /* 累积和、累积平方和 */
-static double g_sum_kurt = 0;
+static double g_sum_kurt = 0, g_sum_kurt2 = 0;
 static double g_sum_temp = 0;
 static uint32_t g_learn_cnt = 0;
 
-/* RUL 退化历史 */
-static float g_rms_hist[32];
+/* RUL 退化历史（存组合退化分数，融合 RMS 和峭度） */
+static float g_deg_hist[32];
 static uint8_t g_hist_idx = 0, g_hist_cnt = 0;
 
 static void update_led(HealthState_t s)
@@ -59,6 +60,7 @@ static void baseline_learn(float rms, float kurt, float temp)
     g_sum_rms  += rms;
     g_sum_rms2 += (double)rms * rms;
     g_sum_kurt += kurt;
+    g_sum_kurt2 += (double)kurt * kurt;
     g_sum_temp += temp;
     g_learn_cnt++;
 
@@ -67,24 +69,33 @@ static void baseline_learn(float rms, float kurt, float temp)
         g_out.baseline.rms_mean  = (float)(g_sum_rms / n);
         g_out.baseline.rms_std   = (float)sqrt(g_sum_rms2 / n - (g_sum_rms/n) * (g_sum_rms/n));
         g_out.baseline.kurt_mean = (float)(g_sum_kurt / n);
+        g_out.baseline.kurt_std  = (float)sqrt(g_sum_kurt2 / n - (g_sum_kurt/n) * (g_sum_kurt/n));
         g_out.baseline.temp_mean = (float)(g_sum_temp / n);
         if (g_out.baseline.rms_std < 1.0f) g_out.baseline.rms_std = 1.0f;  /* 防除零 */
+        if (g_out.baseline.kurt_std < 0.5f) g_out.baseline.kurt_std = 0.5f;
         g_out.baseline.learned = 1;
         g_out.baseline.sample_cnt = g_learn_cnt;
+        /* 学习完成，保存到 Flash（掉电不丢失，下次开机直接加载） */
+        FlashStore_SaveBaseline(&g_out.baseline);
     }
 }
 
 /*
  * RUL（剩余使用寿命）预测：
- *   用最近 32 帧 RMS 做线性回归，得到退化速率 slope
- *   失效阈值 = μ + 8σ（z=8 时认为即将失效）
- *   剩余帧数 = (失效阈值 - 截距) / slope
- *   换算成小时返回
+ *   综合 RMS 和峭度两个特征的 z-score，取最大值作为"退化分数"
+ *   （峭度对早期冲击故障更敏感，RMS 对晚期磨损更敏感，两者互补）
+ *   用最近 32 帧退化分数做线性回归，预测到达失效阈值(8.0)还需多久
  */
-static uint32_t predict_rul(float current_rms)
+static uint32_t predict_rul(float z_rms, float kurt)
 {
-    /* 环形缓冲：保存最近 32 帧 RMS */
-    g_rms_hist[g_hist_idx] = current_rms;
+    /* 组合退化分数 = max(|z_rms|, |z_kurt|) */
+    float z_kurt = (kurt - g_out.baseline.kurt_mean) / g_out.baseline.kurt_std;
+    float deg = z_rms;
+    if (z_kurt > deg) deg = z_kurt;
+    if (deg < 0) deg = -deg;
+
+    /* 环形缓冲：保存最近 32 帧退化分数 */
+    g_deg_hist[g_hist_idx] = deg;
     g_hist_idx = (g_hist_idx + 1) % 32;
     if (g_hist_cnt < 32) g_hist_cnt++;
     if (g_hist_cnt < 8) return 9999;  /* 数据不足，不预测 */
@@ -93,7 +104,7 @@ static uint32_t predict_rul(float current_rms)
     float sx=0, sy=0, sxy=0, sxx=0;
     for (uint8_t i = 0; i < g_hist_cnt; i++) {
         float x = (float)i;
-        float y = g_rms_hist[(g_hist_idx + i) % 32];
+        float y = g_deg_hist[(g_hist_idx + i) % 32];
         sx += x; sy += y; sxy += x*y; sxx += x*x;
     }
     float n = (float)g_hist_cnt;
@@ -102,8 +113,8 @@ static uint32_t predict_rul(float current_rms)
 
     if (slope <= 0.001f) return 9999;  /* 几乎不退化，寿命很长 */
 
-    /* 预测到达失效阈值(μ+8σ)还需要多少帧 */
-    float fail_level = g_out.baseline.rms_mean + 8.0f * g_out.baseline.rms_std;
+    /* 预测退化分数到达失效阈值(8.0)还需要多少帧 */
+    float fail_level = 8.0f;
     float frames = (fail_level - intercept) / slope;
     if (frames <= 0) return 0;
 
@@ -126,11 +137,19 @@ void StateMachine_Init(void)
     g_out.baseline.learned = 0;
     g_out.baseline.rms_mean = 0;
     g_out.baseline.rms_std = 1;
+    g_out.baseline.kurt_mean = 3;
+    g_out.baseline.kurt_std = 1;
     g_out.baseline.sample_cnt = 0;
-    g_sum_rms = g_sum_rms2 = g_sum_kurt = g_sum_temp = 0;
+    g_sum_rms = g_sum_rms2 = g_sum_kurt = g_sum_kurt2 = g_sum_temp = 0;
     g_learn_cnt = 0;
     g_confirm_count = 0;
     g_hist_cnt = 0;
+
+    /* 尝试从 Flash 加载上次学习的基线（避免每次开机等 50 秒） */
+    if (FlashStore_LoadBaseline(&g_out.baseline) == 0) {
+        /* 加载成功，跳过学习阶段 */
+        g_out.baseline.learned = 1;
+    }
 
     update_led(HEALTH_GOOD);
 }
@@ -166,12 +185,37 @@ const StateOutput_t* StateMachine_Update(const VibFeatures_t *feat, float temp)
      *   z=0 完全正常, z=2 轻微偏离, z=5 明显异常, z=8 危险 */
     g_out.z_rms = (feat->rms - g_out.baseline.rms_mean) / g_out.baseline.rms_std;
 
+    /* 步骤2.5：基线长期漂移更新
+     *   仅在健康状态（|z| < 1.5）下，用极小学习率(0.1%)微调均值和标准差，
+     *   适应温度漂移、轴承磨损等缓慢变化；故障时(z 大)不更新，避免"学习故障"。 */
+    if (g_out.z_rms > -1.5f && g_out.z_rms < 1.5f) {
+        const float alpha = 0.001f;  /* 学习率：每帧只改 0.1% */
+        g_out.baseline.rms_mean = (1.0f - alpha) * g_out.baseline.rms_mean + alpha * feat->rms;
+        float diff = feat->rms - g_out.baseline.rms_mean;
+        float var = g_out.baseline.rms_std * g_out.baseline.rms_std;
+        var = (1.0f - alpha) * var + alpha * diff * diff;
+        g_out.baseline.rms_std = sqrtf(var);
+        if (g_out.baseline.rms_std < 1.0f) g_out.baseline.rms_std = 1.0f;
+    }
+
     /* 步骤3：按 z-score 分级（自适应，不依赖绝对值） */
     uint8_t level = 0;
     if (g_out.z_rms > 8.0f) level = 4;       /* 失效：必须停机 */
     else if (g_out.z_rms > 5.0f) level = 3;  /* 紧急：尽快更换 */
     else if (g_out.z_rms > 3.0f) level = 2;  /* 预警：准备备件 */
     else if (g_out.z_rms > 2.0f) level = 1;  /* 关注：持续监测 */
+
+    /* 步骤3.5：温度保护（电机过热会烧毁绕组，必须独立于振动判断）
+     *   T > 80℃  → 至少关注级
+     *   T > 90℃  → 至少紧急级
+     *   T > 100℃ → 直接失效（过热停机保护） */
+    if (temp > 100.0f) {
+        level = 4;
+    } else if (temp > 90.0f) {
+        if (level < 3) level = 3;
+    } else if (temp > 80.0f) {
+        if (level < 1) level = 1;
+    }
 
     HealthState_t target = (HealthState_t)level;
 
@@ -188,7 +232,7 @@ const StateOutput_t* StateMachine_Update(const VibFeatures_t *feat, float temp)
     }
 
     /* 步骤4：RUL 预测 + 维护建议 */
-    g_out.rul_hours = predict_rul(feat->rms);
+    g_out.rul_hours = predict_rul(g_out.z_rms, feat->kurtosis);
 
     switch (g_out.health) {
         case HEALTH_GOOD:

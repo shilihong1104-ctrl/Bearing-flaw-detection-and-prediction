@@ -96,15 +96,16 @@ int8_t DS18B20_Init(void)
     return 0;
 }
 
-int16_t DS18B20_ReadTempX10(void)
+int8_t DS18B20_StartConversion(void)
 {
-    if (ds18b20_reset() != 0) return -999;
-
-    /* 启动温度转换 */
+    if (ds18b20_reset() != 0) return -1;
     ds18b20_write_byte(0xCC);  /* Skip ROM */
     ds18b20_write_byte(0x44);  /* Convert T */
-    HAL_Delay(750);            /* 12-bit 转换最长 750ms */
+    return 0;  /* 不等待，立即返回 */
+}
 
+int16_t DS18B20_ReadResultX10(void)
+{
     if (ds18b20_reset() != 0) return -999;
 
     /* 读取暂存器 */
@@ -118,4 +119,12 @@ int16_t DS18B20_ReadTempX10(void)
     /* 12-bit 分辨率，0.0625℃/LSB，×10 后 = 0.625/LSB */
     int16_t temp_x10 = (int16_t)((float)raw * 0.625f);
     return temp_x10;
+}
+
+int16_t DS18B20_ReadTempX10(void)
+{
+    /* 阻塞式：启动转换 + 等待 + 读结果 */
+    if (DS18B20_StartConversion() != 0) return -999;
+    HAL_Delay(750);            /* 12-bit 转换最长 750ms */
+    return DS18B20_ReadResultX10();
 }

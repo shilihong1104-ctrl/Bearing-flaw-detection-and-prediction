@@ -26,6 +26,7 @@ typedef struct {
     float rms_mean;      /* 正常 RMS 均值 */
     float rms_std;       /* 正常 RMS 标准差 */
     float kurt_mean;     /* 正常峭度均值 */
+    float kurt_std;      /* 正常峭度标准差 */
     float temp_mean;     /* 正常温度均值 */
     uint8_t learned;     /* 是否已完成基线学习 */
     uint32_t sample_cnt; /* 已学习样本数 */

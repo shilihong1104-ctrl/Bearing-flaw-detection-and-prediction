@@ -59,6 +59,8 @@ volatile int16_t g_z_buffer[FRAME_LEN]; /* Z 轴振动缓冲 */
 volatile uint16_t g_buf_idx = 0;        /* 缓冲写入位置 */
 volatile uint8_t g_frame_ready = 0;     /* 一帧采集完成标志 */
 volatile int16_t g_temp_x10 = 0;        /* 温度 ×10 */
+static uint32_t g_temp_conv_start = 0;   /* 温度转换启动时刻 */
+static uint8_t  g_temp_converting = 0;   /* 温度转换进行中标志 */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +79,24 @@ int _write(int file, char *ptr, int len)
 {
   HAL_UART_Transmit(&hcom_uart[COM1], (uint8_t *)ptr, len, HAL_MAX_DELAY);
   return len;
+}
+
+/* IWDG 独立看门狗（寄存器直接操作，无需 HAL IWDG 驱动）
+ * LSI ≈ 32kHz, 预分频 /64, reload=1000 → 超时 ≈ 2s
+ * 主循环必须在 2s 内喂狗，否则自动复位（满足 72h 连续运行硬约束） */
+static void IWDG_Init(void)
+{
+  IWDG->KR  = 0x5555;   /* 解锁 PR/RLR 寄存器 */
+  IWDG->PR  = 0x04;     /* 预分频 /64 */
+  IWDG->RLR = 1000;     /* 重载值 → 2s 超时 */
+  while (IWDG->SR != 0) { /* 等待 PVU/RVU 位清零 */ }
+  IWDG->KR  = 0xCCCC;   /* 启动看门狗 */
+  IWDG->KR  = 0xAAAA;   /* 首次喂狗 */
+}
+
+static inline void IWDG_Refresh(void)
+{
+  IWDG->KR = 0xAAAA;    /* 喂狗 */
 }
 /* USER CODE END 0 */
 
@@ -170,6 +190,10 @@ int main(void)
     Error_Handler();
   }
 
+  /* 启动独立看门狗（2s 超时，主循环喂狗） */
+  IWDG_Init();
+  printf("IWDG started (2s timeout)\r\n");
+
   /* ============================================================
    * 主循环（while 1）
    * 核心数据流：
@@ -228,12 +252,23 @@ int main(void)
       }
     }
 
-    /* 每 5 秒读取一次电机温度（DS18B20 转换较慢） */
-    if (HAL_GetTick() - temp_timer > 5000)
-    {
-      temp_timer = HAL_GetTick();
-      g_temp_x10 = DS18B20_ReadTempX10();
+    /* 温度采集（非阻塞：启动转换 → 等 750ms → 读结果 → 每 5 秒一次） */
+    if (!g_temp_converting) {
+        if (HAL_GetTick() - temp_timer > 5000) {
+            DS18B20_StartConversion();
+            g_temp_conv_start = HAL_GetTick();
+            g_temp_converting = 1;
+        }
+    } else {
+        if (HAL_GetTick() - g_temp_conv_start > 750) {
+            g_temp_x10 = DS18B20_ReadResultX10();
+            temp_timer = HAL_GetTick();
+            g_temp_converting = 0;
+        }
     }
+
+    /* 喂狗（必须在 2s 内执行） */
+    IWDG_Refresh();
   }
 }
 
