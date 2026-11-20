@@ -62,11 +62,10 @@ ADXL345(4kHz采样) → 分帧(1024点) → 特征提取(RMS/峭度)
 
 ## 编译
 
-使用 CLion 或 CMake + arm-none-eabi-gcc：
+使用 CLion 或 CMake + arm-none-eabi-gcc（在仓库根目录下执行）：
 
 ```powershell
-cd D:\STM32\blink_demo
-mkdir build && cd build
+mkdir build ; cd build
 cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/gcc-arm-none-eabi.cmake ..
 make -j
 ```
