@@ -1,0 +1,9 @@
+# 端侧轴承故障检测 —— 最小可复现训练流程依赖
+# Python >= 3.9
+torch>=2.0
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+matplotlib>=3.6
+onnx>=1.14        # 导出 ONNX 供 X-CUBE-AI 使用
+tqdm>=4.65         # 训练进度条(可选,缺失时代码自动降级)
