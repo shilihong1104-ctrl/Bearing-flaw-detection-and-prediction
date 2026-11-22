@@ -1,0 +1,6 @@
+# 训练数据与输出不提交
+data/
+runs/
+__pycache__/
+*.pyc
+*.pyo
