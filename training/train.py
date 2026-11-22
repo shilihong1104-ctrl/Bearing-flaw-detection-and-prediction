@@ -177,7 +177,7 @@ def main():
         from sklearn.metrics import confusion_matrix, classification_report
         cm = confusion_matrix(y_true, y_pred)
         plot_confusion_matrix(cm, C.CLASS_NAMES, out_dir / "confusion_matrix.png")
-        report = classification_report(y_true, y_pred, target_names=C.CLASS_NAMES)
+        report = classification_report(y_true, y_pred, target_names=C.CLASS_NAMES, zero_division=0)
     except ImportError:
         cm = np.zeros((C.NUM_CLASSES, C.NUM_CLASSES), dtype=int)
         for t, p in zip(y_true, y_pred):
