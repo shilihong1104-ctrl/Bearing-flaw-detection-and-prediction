@@ -52,7 +52,7 @@ def main():
         input_names=["input"],
         output_names=["output"],
         dynamic_axes={"input": {0: "batch"}, "output": {0: "batch"}},
-        opset_version=11,
+        opset_version=18,   # torch>=2.1 最低支持 opset 18;X-CUBE-AI 可导入
     )
     print(f"[export] ONNX 已保存: {out_path} ({out_path.stat().st_size} bytes)",
           flush=True)
