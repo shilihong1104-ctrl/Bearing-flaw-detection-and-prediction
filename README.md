@@ -112,9 +112,23 @@ blink_demo/
 ├── Drivers/          # STM32 HAL 库
 ├── Middlewares/ST/AI # X-CUBE-AI 运行时库
 ├── X-CUBE-AI/App     # AI 模型 C 代码
+├── training/         # 模型训练与导出(可复现全链路,见下方)
 ├── blink_demo.ioc    # CubeMX 配置
 └── flash.ps1         # 烧录脚本
 ```
+
+## 模型训练与复现
+
+端侧部署的 1D-CNN 模型可完整复现,训练→导出→部署全链路见 [`training/`](training/README.md):
+
+```
+CWRU 数据 → 训练 (best_model.pt) → 导出 ONNX → X-CUBE-AI 生成 C 代码 → 板端推理
+```
+
+- 训练代码:`training/train.py`(支持 CWRU 真实数据 / 合成数据兜底验证闭环)
+- 模型结构:3×Conv1d + GAP + Linear,参数量 ≈25.8K(与端侧权重 103KB 对齐)
+- 导出:`training/export.py` 生成 ONNX,用 STM32Cube.AI 导入即可生成与现有 `X-CUBE-AI/` 一致的 C 代码
+- 预处理:训练与端侧均采用每帧独立 z-score 归一化,保证分布一致
 
 ## 资源占用（含 AI 模型）
 
