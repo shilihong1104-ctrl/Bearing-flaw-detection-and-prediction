@@ -6,4 +6,5 @@ scipy>=1.10
 scikit-learn>=1.2
 matplotlib>=3.6
 onnx>=1.14        # 导出 ONNX 供 X-CUBE-AI 使用
+onnxscript>=0.7   # torch>=2.1  dynamo 导出器依赖,缺失时 export.py 会报 ModuleNotFoundError
 tqdm>=4.65         # 训练进度条(可选,缺失时代码自动降级)
